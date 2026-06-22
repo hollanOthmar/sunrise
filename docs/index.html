@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psalm 19 - Realistic Horizon Cycle</title>
+    <style>
+        /* 1. Base Reset */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: black;
+        }
+
+        /* 2. Psalm Scrolling Text */
+        .psalm-container {
+            position: absolute !important;
+            top: 0 !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            width: 85% !important;
+            height: 100vh !important;
+            z-index: 500 !important;
+            pointer-events: none;
+            overflow: hidden !important;
+            mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent) !important;
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent) !important;
+            transition: color 1s ease;
+        }
+
+        .psalm-scroll-wrapper {
+            position: absolute !important;
+            width: 100% !important;
+            animation: scrollText 60s linear infinite !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+        }
+
+        @keyframes scrollText {
+            0% { transform: translateY(100vh); }
+            100% { transform: translateY(-100%); }
+        }
+
+        .psalm-text {
+            font-family: 'Georgia', serif;
+            font-style: italic;
+            font-size: 1.8rem;
+            line-height: 1.8;
+            text-align: center;
+            padding: 50vh 0;
+        }
+
+        .psalm-verse {
+            margin-bottom: 2rem;
+            display: block;
+            max-width: 800px;
+        }
+
+        #skyCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="psalm-container">
+        <div class="psalm-scroll-wrapper">
+            <div class="psalm-text">
+                <span class="psalm-verse"><b>1</b> The heavens declare the glory of God; the skies proclaim the work of his hands.</span>
+                <span class="psalm-verse"><b>2</b> Day after day they pour forth speech; night after night they reveal knowledge.</span>
+                <span class="psalm-verse"><b>3</b> They have no speech, they use no words; no sound is heard from them.</span>
+                <span class="psalm-verse"><b>4</b> Yet their voice goes out into all the earth, their words to the ends of the world. In the heavens God has pitched a tent for the sun.</span>
+                <span class="psalm-verse"><b>5</b> It is like a bridegroom coming out of his chamber, like a champion rejoicing to run his course.</span>
+                <span class="psalm-verse"><b>6</b> It rises at one end of the heavens and makes its circuit to the other; nothing is deprived of its warmth.</span>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="skyCanvas"></canvas>
+
+    <script>
+        (function() {
+            const canvas = document.getElementById('skyCanvas');
+            const ctx = canvas.getContext('2d');
+            const psalm = document.querySelector('.psalm-container');
+            let width, height;
+
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            // 1. Night Setup: Stars
+            const stars = [];
+            for(let i=0; i<150; i++) {
+                stars.push({ x: Math.random(), y: Math.random(), s: Math.random() * 1.5, b: 0.05 + Math.random() * 0.1 });
+            }
+
+            // 2. Mountain Setup
+            const mountains = [];
+            const mountainCount = 6;
+            for(let i=0; i < mountainCount; i++) {
+                mountains.push({
+                    x: (i / mountainCount) * width + (Math.random() * width/mountainCount),
+                    w: (width / 2) + Math.random() * (width / 2),
+                    h: (height * 0.15) + Math.random() * (height * 0.2),
+                    c: Math.random() > 0.5 ? '#2c3e50' : '#1a252f'
+                });
+            }
+
+            let time = 0; 
+            const duration = 30000; // 30 seconds
+            let lastUpdate = Date.now();
+
+            function lerp(a, b, m) {
+                const ah = parseInt(a.slice(1), 16), ar = ah >> 16, ag = (ah >> 8) & 0xff, ab = ah & 0xff;
+                const bh = parseInt(b.slice(1), 16), br = bh >> 16, bg = (bh >> 8) & 0xff, bb = bh & 0xff;
+                const rr = Math.round(ar + m * (br - ar)), rg = Math.round(ag + m * (bg - ag)), rb = Math.round(ab + m * (bb - ab));
+                return '#' + ((1 << 24) + (rr << 16) + (rg << 8) + rb).toString(16).slice(1);
+            }
+
+            function getColors(t) {
+                if (t <= 0.2 || t >= 0.8) return { t: '#000000', b: '#050505', br: 0, ground: '#556B2F', sunC: '#ff7e5f', sunO: '#ff4500' };
+                if (t <= 0.35) { 
+                    let p = (t-0.2)/0.15; 
+                    return { t: lerp('#000000', '#4a6b8a', p), b: lerp('#050505', '#ff8c00', p), br: p*0.5, ground: lerp('#556B2F', '#688F4C', p), sunC: lerp('#ff7e5f', '#fff700', p), sunO: lerp('#ff4500', '#ff8c00', p) }; 
+                }
+                if (t <= 0.5) { 
+                    let p = (t-0.35)/0.15; 
+                    return { t: lerp('#4a6b8a', '#87ceeb', p), b: lerp('#ff8c00', '#ffffff', p), br: 0.5+p*0.5, ground: lerp('#688F4C', '#7BB369', p), sunC: '#ffffff', sunO: lerp('#ff8c00', '#ffffff', p) }; 
+                }
+                if (t <= 0.65) { 
+                    let p = (t-0.5)/0.15; 
+                    return { t: lerp('#87ceeb', '#4a6b8a', p), b: lerp('#ffffff', '#ff8c00', p), br: 1-p*0.5, ground: lerp('#7BB369', '#688F4C', p), sunC: '#ffffff', sunO: lerp('#ffffff', '#ff8c00', p) }; 
+                }
+                let p = (t-0.65)/0.15; 
+                return { t: lerp('#4a6b8a', '#000000', p), b: lerp('#ff8c00', '#050505', p), br: 0.5-p*0.5, ground: lerp('#688F4C', '#556B2F', p), sunC: lerp('#fff700', '#ff7e5f', p), sunO: lerp('#ff8c00', '#ff4500', p) };
+            }
+
+            function loop() {
+                const now = Date.now(), delta = now - lastUpdate;
+                lastUpdate = now; 
+                time = (time + (delta/duration)) % 1;
+                
+                ctx.clearRect(0,0,width,height);
+                
+                const c = getColors(time);
+                const g = ctx.createLinearGradient(0,0,0,height);
+                g.addColorStop(0, c.t); g.addColorStop(1, c.b);
+                ctx.fillStyle = g; ctx.fillRect(0,0,width,height);
+
+                // 1. Stars
+                let op = time < 0.2 ? 1 : time < 0.3 ? 1-(time-0.2)/0.1 : time > 0.7 ? (time-0.7)/0.1 : 0;
+                if (op > 0) {
+                    ctx.globalAlpha = op;
+                    stars.forEach(s => {
+                        ctx.fillStyle = 'rgba(255,255,255,' + (Math.sin(Date.now()*s.b)*0.5+0.5) + ')';
+                        ctx.beginPath(); ctx.arc(s.x*width, s.y*height*0.7, s.s, 0, Math.PI*2); ctx.fill();
+                    });
+                    ctx.globalAlpha = 1;
+                }
+
+                // 2. Moon Path
+                let moonT = -1;
+                if (time >= 0.8) moonT = (time - 0.8) / 0.4;
+                else if (time <= 0.2) moonT = 0.5 + (time / 0.4);
+
+                if (moonT !== -1) {
+                    const angle = Math.PI * (1 - moonT);
+                    const mX = (width/2) + Math.cos(angle) * width * 0.7;
+                    const mY = (height*1.1) - Math.sin(angle) * height * 0.9;
+                    ctx.save();
+                    ctx.shadowBlur = 15; ctx.shadowColor = 'white'; ctx.fillStyle = '#f5f5f5';
+                    ctx.beginPath(); ctx.arc(mX, mY, 25, 0, Math.PI*2); ctx.fill();
+                    ctx.shadowBlur = 0; ctx.fillStyle = c.t;
+                    ctx.beginPath(); ctx.arc(mX+12, mY-4, 20, 0, Math.PI*2); ctx.fill();
+                    ctx.restore();
+                }
+
+                if (psalm) psalm.style.color = c.br > 0.6 ? 'black' : 'white';
+
+                // 3. Sun Path
+                if (time > 0.2 && time < 0.8) {
+                    const sT = (time-0.2)/0.6, a = Math.PI*(1-sT), cX = width/2, cY = height*1.1;
+                    const sX = cX + Math.cos(a)*width*0.7, sY = cY - Math.sin(a)*height*0.9;
+                    const peakF = Math.max(0, 1 - Math.abs(time - 0.5) * 5);
+                    ctx.shadowBlur = 40 + (peakF * 80);
+                    ctx.shadowColor = '#ffffff';
+                    const sg = ctx.createRadialGradient(sX, sY, 2, sX, sY, 50);
+                    sg.addColorStop(0, '#ffffff'); sg.addColorStop(0.3, c.sunC); sg.addColorStop(0.7, c.sunO); sg.addColorStop(1, 'transparent');
+                    ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sX, sY, 50, 0, Math.PI*2); ctx.fill(); 
+                    ctx.shadowBlur = 0;
+                }
+
+                // 4. Mountains
+                mountains.forEach(m => {
+                    ctx.fillStyle = m.c;
+                    ctx.beginPath();
+                    ctx.moveTo(m.x - m.w/2, height * 0.75);
+                    ctx.lineTo(m.x, height * 0.75 - m.h);
+                    ctx.lineTo(m.x + m.w/2, height * 0.75);
+                    ctx.fill();
+                });
+
+                // 5. Ground
+                ctx.fillStyle = c.ground; 
+                ctx.beginPath(); ctx.ellipse(width/2, height, width*1.3, height*0.4, 0, 0, Math.PI*2); ctx.fill();
+                
+                requestAnimationFrame(loop);
+            }
+            loop();
+        })();
+    </script>
+</body>
+</html>
